@@ -1,6 +1,6 @@
 #!/bin/bash
 # Based on: https://github.com/daniel3303/ClaudeCodeStatusLine
-# Line 1: [account label |] Model (effort) | dir@branch scratchpad | tokens (%used) | cache countdown | 5h[↑] @reset | 7d[↑] @reset | scoped | extra | CLI version
+# Line 1: [account label |] Model (effort) | dir@branch scratchpad | tokens (%used) | cache TTL countdown [· 🫀 autostop (interval)] | 5h[↑] @reset | 7d[↑] @reset | scoped | extra | CLI version
 # Line 2: [session name |] full current working directory
 
 set -f
@@ -157,16 +157,39 @@ render_cache_segment() {
     [[ $last_epoch =~ ^[0-9]+$ && $ttl =~ ^[0-9]+$ ]] || return
     remaining=$(( last_epoch + ttl - now ))
     if (( remaining <= 0 )); then
-        cache_segment="${sep}${white}cache${reset} ${red}expired${reset}"
+        cache_segment="${sep}${white}cache TTL${reset} ${red}expired${reset}"
         return
     fi
     live_cache_ttl=$ttl
     (( remaining * 4 > ttl )) && color=$green || color=$orange
     if (( ttl > 300 )); then
-        printf -v cache_segment '%s%scache%s %s%dm%s' "$sep" "$white" "$reset" "$color" $(( (remaining + 59) / 60 )) "$reset"
+        printf -v cache_segment '%s%scache TTL%s %s%dm%s' "$sep" "$white" "$reset" "$color" $(( (remaining + 59) / 60 )) "$reset"
     else
-        printf -v cache_segment '%s%scache%s %s%d:%02d%s' "$sep" "$white" "$reset" "$color" $(( remaining / 60 )) $(( remaining % 60 )) "$reset"
+        printf -v cache_segment '%s%scache TTL%s %s%d:%02d%s' "$sep" "$white" "$reset" "$color" $(( remaining / 60 )) $(( remaining % 60 )) "$reset"
     fi
+}
+
+render_cachebeat_segment() {
+    local state_file="${TMPDIR:-/tmp}/cachebeat-$session_id" idle_minutes deadline timer_pid remaining minutes countdown color=$dim
+    [[ $session_id =~ ^[A-Za-z0-9-]+$ ]] && [ -r "$state_file" ] || return
+    read -r _ idle_minutes deadline _ < "$state_file"
+    [[ $idle_minutes =~ ^[0-9]+$ && $deadline =~ ^[0-9]+$ ]] || return
+    remaining=$(( deadline - now ))
+    (( remaining > 0 )) || return
+    [ -r "$state_file.pid" ] && read -r timer_pid < "$state_file.pid" \
+        && [[ $timer_pid =~ ^[0-9]+$ ]] && kill -0 "$timer_pid" 2>/dev/null && color=$green
+    minutes=$(( (remaining + 59) / 60 ))
+    if (( minutes >= 60 )); then
+        printf -v countdown '%dh%02dm' $(( minutes / 60 )) $(( minutes % 60 ))
+    else
+        countdown="${minutes}m"
+    fi
+    if [ -n "$cache_segment" ]; then
+        cache_segment+=" ${dim}·${reset} "
+    else
+        cache_segment+=$sep
+    fi
+    cache_segment+="🫀 ${color}${countdown}${reset} ${dim}(${reset}${white}${idle_minutes}m${reset}${dim})${reset}"
 }
 
 render_git_segment() {
@@ -353,6 +376,7 @@ fi
 cache_segment=""
 live_cache_ttl=0
 render_cache_segment
+render_cachebeat_segment
 
 output="${head}${git_segment}${tokens_segment}${cache_segment}${limits_segment}"
 [ -n "$cli_version" ] && output+="${sep}${orange}v${cli_version}${reset}"

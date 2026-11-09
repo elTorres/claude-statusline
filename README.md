@@ -3,7 +3,7 @@
 Basada en [daniel3303/ClaudeCodeStatusLine](https://github.com/daniel3303/ClaudeCodeStatusLine) (MIT). Licencia: [MIT](LICENSE).
 
 ```text
-[cuenta |] Modelo (esfuerzo) | dir@rama scratchpad | tokens (%usado) | cache 42m · 4:37 | 5h[↑] @reinicio | 7d[↑] @reinicio | scoped | extra | versión
+[cuenta |] Modelo (esfuerzo) | dir@rama scratchpad | tokens (%usado) | cache TTL 42m · 🫀 2h15m (50m) | 5h[↑] @reinicio | 7d[↑] @reinicio | scoped | extra | versión
 [sesión |] /ruta/completa/del/directorio
 ```
 
@@ -59,7 +59,8 @@ En Windows:
 | Sesión | `session_name` del JSON de Claude Code (solo si la sesión se nombró con `/rename`) |
 | Cuenta | `STATUSLINE_ACCOUNT_LABEL` → `oauthAccount.displayName` ("What should Claude call you?") → dominio de `oauthAccount.emailAddress` |
 | Carpeta y scratchpad | Enlaces OSC 8 (`file://`) a `cwd` y a la carpeta de trabajo de la sesión (`<tmp>/claude-<uid>/<project_dir saneado>/<session_id>/scratchpad`, solo si existe). Al pulsarlos se abren en Finder o Explorer, según el terminal (iTerm2: Cmd+clic) |
-| cache | Tiempo hasta que caduca la caché de prompts: última respuesta del `transcript_path` + TTL (1 h si escribió `ephemeral_1h`, si no 5 min). Con TTL de 1 h se muestra en minutos (`42m`); con 5 min, en `m:ss`. Naranja en el último 25 %, `expired` al caducar |
+| cache TTL | Tiempo hasta que caduca la caché de prompts: última respuesta del `transcript_path` + TTL (1 h si escribió `ephemeral_1h`, si no 5 min). Con TTL de 1 h se muestra en minutos (`42m`); con 5 min, en `m:ss`. Naranja en el último 25 %, `expired` al caducar |
+| 🫀 | Solo con [cachebeat](https://github.com/ARahim3/cachebeat) armado en la sesión: tiempo hasta su auto-stop y, entre paréntesis, el umbral de inactividad tras el que lanza cada latido, leído de `$TMPDIR/cachebeat-<session_id>`. Verde si su temporizador está vivo; atenuado si está armado pero sin temporizador en marcha (p. ej. se retiró porque la caché ya había caducado, o la sesión se reanudó sin volver a ejecutar `/cachebeat`) |
 | 5h / 7d | `rate_limits` del JSON de Claude Code o, en su defecto, la API de uso de Anthropic (en caché). `↑` en rojo cuando el porcentaje usado supera el tiempo transcurrido de la ventana |
 
 Los datos de la cuenta se leen de `$CLAUDE_CONFIG_DIR/.claude.json`, o de `~/.claude.json` si `CLAUDE_CONFIG_DIR` no está definida.

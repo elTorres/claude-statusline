@@ -1,5 +1,5 @@
 # Based on: https://github.com/daniel3303/ClaudeCodeStatusLine
-# Line 1: [account label |] Model (effort) | dir@branch scratchpad | tokens (%used) | cache countdown | 5h[↑] @reset | 7d[↑] @reset | scoped | extra | CLI version
+# Line 1: [account label |] Model (effort) | dir@branch scratchpad | tokens (%used) | cache TTL countdown [· 🫀 autostop (interval)] | 5h[↑] @reset | 7d[↑] @reset | scoped | extra | CLI version
 # Line 2: [session name |] full current working directory
 param(
     [string]$Refresh,
@@ -178,12 +178,33 @@ function Format-CacheSegment([string]$TranscriptPath) {
     if ($lastEpoch -le 0) { return '' }
     if ($ttl -eq 0) { $ttl = 300 }
     $remaining = $lastEpoch + $ttl - $now
-    if ($remaining -le 0) { return $sep + $white + 'cache' + $reset + ' ' + $red + 'expired' + $reset }
+    if ($remaining -le 0) { return $sep + $white + 'cache TTL' + $reset + ' ' + $red + 'expired' + $reset }
     $script:liveCacheTtl = $ttl
     $color = if ($remaining * 4 -gt $ttl) { $green } else { $orange }
     $countdown = if ($ttl -gt 300) { [string][math]::Ceiling($remaining / 60) + 'm' }
         else { [string]::Format($invariant, '{0}:{1:00}', [math]::Floor($remaining / 60), $remaining % 60) }
-    $sep + $white + 'cache' + $reset + ' ' + $color + $countdown + $reset
+    $sep + $white + 'cache TTL' + $reset + ' ' + $color + $countdown + $reset
+}
+
+function Format-CachebeatSegment([string]$SessionId, [bool]$FollowsCacheSegment) {
+    if ($SessionId -notmatch '^[A-Za-z0-9-]+$') { return '' }
+    $tempDir = if ($env:TMPDIR) { $env:TMPDIR } else { [IO.Path]::GetTempPath() }
+    $stateFile = Join-Path $tempDir ('cachebeat-' + $SessionId)
+    $fields = (Read-Text $stateFile).Trim() -split '\s+'
+    $idleMinutes = [long]0
+    $deadline = [long]0
+    if ($fields.Count -lt 3 -or -not [long]::TryParse($fields[1], [ref]$idleMinutes) -or -not [long]::TryParse($fields[2], [ref]$deadline)) { return '' }
+    $remaining = $deadline - $now
+    if ($remaining -le 0) { return '' }
+    $color = $dim
+    $timerPid = 0
+    if ($isWindowsHost) { $color = $green }
+    elseif ([int]::TryParse((Read-Text ($stateFile + '.pid')).Trim(), [ref]$timerPid) -and (Get-Process -Id $timerPid)) { $color = $green }
+    $minutes = [long][math]::Ceiling($remaining / 60)
+    $countdown = if ($minutes -ge 60) { [string]::Format($invariant, '{0}h{1:00}m', [math]::Floor($minutes / 60), $minutes % 60) }
+        else { [string]$minutes + 'm' }
+    $prefix = if ($FollowsCacheSegment) { ' ' + $dim + [char]0x00B7 + $reset + ' ' } else { $sep }
+    $prefix + [char]::ConvertFromUtf32(0x1FAC0) + ' ' + $color + $countdown + $reset + ' ' + $dim + '(' + $reset + $white + [string]$idleMinutes + 'm' + $reset + $dim + ')' + $reset
 }
 
 function Format-Placeholder([string]$Label) {
@@ -439,7 +460,8 @@ if ($cwd) {
     if ($scratchpadDir) { $line += ' ' + (Format-Hyperlink $scratchpadDir ($dim + $cyan + 'scratchpad' + $reset)) }
 }
 $line += $sep + $orange + (Format-Tokens $current) + '/' + (Format-Tokens $size) + $reset + ' ' + $dim + '(' + $reset + $green + $percentUsed + '%' + $reset + $dim + ')' + $reset
-$line += (Format-CacheSegment ([string](Get-Value $status.transcript_path ''))) + $limits
+$cacheSegment = Format-CacheSegment ([string](Get-Value $status.transcript_path ''))
+$line += $cacheSegment + (Format-CachebeatSegment ([string](Get-Value $status.session_id '')) ([bool]$cacheSegment)) + $limits
 if ($cliVersion) { $line += $sep + $orange + 'v' + $cliVersion + $reset }
 $secondLine = @()
 if ($sessionName) { $secondLine += $white + $sessionName + $reset }
