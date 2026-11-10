@@ -7,8 +7,8 @@ Basada en [daniel3303/ClaudeCodeStatusLine](https://github.com/daniel3303/Claude
 [sesión |] /ruta/completa/del/directorio
 ```
 
-- `statusline.sh`: macOS y Linux (requiere `jq`, `curl` y `git`).
-- `statusline.ps1`: Windows / PowerShell.
+- `statusline.sh`: macOS, Linux y Windows con Git Bash (requiere `jq`, `curl` y `git`). En Windows es la opción recomendada por ser más rápida; `curl` y `git` vienen con Git for Windows y `jq` se instala con `winget install jqlang.jq`.
+- `statusline.ps1`: Windows / PowerShell, sin dependencias externas.
 
 ## Instalación
 
@@ -40,7 +40,19 @@ Después, en el `settings.json` de cada directorio de configuración:
 
 `refreshInterval` vuelve a ejecutar el script cada 10 s para que la cuenta atrás de la caché avance aunque no haya actividad. Si la entrada no ha cambiado y el TTL es de 1 h (o la caché ya caducó), el script devuelve su última salida durante 60 s sin recalcular, así que en la práctica se actualiza cada minuto con TTL de 1 h y cada 10 s con TTL de 5 min.
 
-En Windows:
+En Windows, con Git Bash:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline/statusline.sh",
+    "refreshInterval": 10
+  }
+}
+```
+
+O con PowerShell:
 
 ```json
 {
@@ -58,7 +70,7 @@ En Windows:
 | --- | --- |
 | Sesión | `session_name` del JSON de Claude Code (solo si la sesión se nombró con `/rename`) |
 | Cuenta | `STATUSLINE_ACCOUNT_LABEL` → `oauthAccount.displayName` ("What should Claude call you?") → dominio de `oauthAccount.emailAddress` |
-| Carpeta y scratchpad | Enlaces OSC 8 (`file://`) a `cwd` y a la carpeta de trabajo de la sesión (`<tmp>/claude-<uid>/<project_dir saneado>/<session_id>/scratchpad`, solo si existe). Al pulsarlos se abren en Finder o Explorer, según el terminal (iTerm2: Cmd+clic) |
+| Carpeta y scratchpad | Enlaces OSC 8 (`file://`) a `cwd` y a la carpeta de trabajo de la sesión (`<tmp>/claude-<uid>/<project_dir saneado>/<session_id>/scratchpad`; en Windows, `%TEMP%\claude\<hash>\<session_id>\scratchpad` o bajo `CLAUDE_CODE_TMPDIR`; solo si existe). Al pulsarlos se abren en Finder o Explorer, según el terminal (iTerm2: Cmd+clic) |
 | cache TTL | Tiempo hasta que caduca la caché de prompts: última respuesta del `transcript_path` + TTL (1 h si escribió `ephemeral_1h`, si no 5 min). Con TTL de 1 h se muestra en minutos (`42m`); con 5 min, en `m:ss`. Naranja en el último 25 %, `expired` al caducar |
 | 🫀 | Solo con [cachebeat](https://github.com/ARahim3/cachebeat) armado en la sesión: tiempo hasta su auto-stop y, entre paréntesis, el umbral de inactividad tras el que lanza cada latido, leído de `$TMPDIR/cachebeat-<session_id>`. Verde si su temporizador está vivo; atenuado si está armado pero sin temporizador en marcha (p. ej. se retiró porque la caché ya había caducado, o la sesión se reanudó sin volver a ejecutar `/cachebeat`) |
 | 5h / 7d | `rate_limits` del JSON de Claude Code o, en su defecto, la API de uso de Anthropic (en caché). `↑` en rojo cuando el porcentaje usado supera el tiempo transcurrido de la ventana |
