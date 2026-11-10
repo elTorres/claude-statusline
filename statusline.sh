@@ -154,6 +154,7 @@ render_cache_segment() {
               else empty end] | last // 300) as $ttl
         | "\($last.timestamp | sub("\\.[0-9]+"; "") | fromdateiso8601) \($ttl)"
     ' 2>/dev/null)
+    ttl=${ttl%$'\r'}  # jq.exe on Windows ends lines with CRLF
     [[ $last_epoch =~ ^[0-9]+$ && $ttl =~ ^[0-9]+$ ]] || return
     remaining=$(( last_epoch + ttl - now ))
     if (( remaining <= 0 )); then
@@ -354,6 +355,7 @@ def iso_to_epoch:
   ] | join("\u001f")
 ' 2>/dev/null <<< "$input"
 )
+update_notice=${update_notice%$'\r'}  # jq.exe on Windows ends lines with CRLF
 
 if [ -z "$now" ]; then
     printf "Claude"
