@@ -107,6 +107,11 @@ resolve_git_dir() {
 
 file_url() {
     local LC_ALL=C path=$1 encoded="" char hex i
+    # Windows drive paths (C:/...) need file:///C:/... with the colon left unencoded
+    if [[ $path =~ ^[A-Za-z]:/ ]]; then
+        encoded="/${path:0:2}"
+        path=${path:2}
+    fi
     for (( i = 0; i < ${#path}; i++ )); do
         char=${path:i:1}
         case $char in
