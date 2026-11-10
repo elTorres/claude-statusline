@@ -131,6 +131,20 @@ resolve_scratchpad_dir() {
     local base sanitized candidate
     scratchpad_dir=""
     [ -n "$session_id" ] && [ -n "$project_dir" ] || return
+    if [[ $OSTYPE == msys* || $OSTYPE == cygwin* ]]; then
+        # Windows: %TEMP%\claude\<project hash>\<session id>\scratchpad
+        [[ $session_id =~ ^[A-Za-z0-9-]+$ ]] || return
+        base=${CLAUDE_CODE_TMPDIR:-${TEMP:-$TMP}}
+        base=${base//\\//}
+        [[ $base =~ ^/([A-Za-z])(/|$) ]] && base="${BASH_REMATCH[1]^}:/${base:3}"
+        [ -n "$base" ] || return
+        set +f
+        for candidate in "${base%/}/claude/"*"/$session_id/scratchpad"; do
+            [ -d "$candidate" ] && scratchpad_dir=$candidate && break
+        done
+        set -f
+        return
+    fi
     base=$(cd "${CLAUDE_CODE_TMPDIR:-/tmp}" 2>/dev/null && pwd -P) || return
     sanitized=${project_dir//[^a-zA-Z0-9]/-}
     if (( ${#sanitized} <= 200 )); then
