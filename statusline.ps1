@@ -139,6 +139,20 @@ function Format-Hyperlink([string]$Path, [string]$Text) {
 
 function Resolve-ScratchpadDir([string]$ProjectDir, [string]$SessionId) {
     if (-not $ProjectDir -or -not $SessionId) { return $null }
+    if ($isWindowsHost) {
+        # Windows: %TEMP%\claude\<project hash>\<session id>\scratchpad
+        if ($SessionId -notmatch '^[A-Za-z0-9-]+$') { return $null }
+        # Same order as Node's os.tmpdir() (TEMP before TMP), not .NET's GetTempPath() (TMP first)
+        $base = @($env:CLAUDE_CODE_TMPDIR, $env:TEMP, $env:TMP, [IO.Path]::GetTempPath()) | Where-Object { $_ } | Select-Object -First 1
+        if ($base -match '^/([A-Za-z])(/|$)') { $base = $Matches[1].ToUpper() + ':\' + $base.Substring(3) }
+        $parent = Join-Path $base 'claude'
+        if (-not [IO.Directory]::Exists($parent)) { return $null }
+        foreach ($project in [IO.Directory]::GetDirectories($parent)) {
+            $candidate = [IO.Path]::Combine($project, $SessionId, 'scratchpad')
+            if ([IO.Directory]::Exists($candidate)) { return $candidate }
+        }
+        return $null
+    }
     $uid = if ($isWindowsHost) { '0' } else { ((& id -u 2>$null) -join '').Trim() }
     $bases = @($env:CLAUDE_CODE_TMPDIR, '/tmp', [IO.Path]::GetTempPath()) | Where-Object { $_ }
     $sanitized = $ProjectDir -replace '[^a-zA-Z0-9]', '-'
