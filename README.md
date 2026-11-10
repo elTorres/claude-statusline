@@ -3,8 +3,8 @@
 Basada en [daniel3303/ClaudeCodeStatusLine](https://github.com/daniel3303/ClaudeCodeStatusLine) (MIT). Licencia: [MIT](LICENSE).
 
 ```text
-[cuenta |] Modelo (esfuerzo) | dir@rama scratchpad | tokens (%usado) | cache TTL 42m · 🫀 2h15m (50m) | 5h[↑] @reinicio | 7d[↑] @reinicio | scoped | extra | versión
-[sesión |] /ruta/completa/del/directorio
+[cuenta |] Modelo (esfuerzo) | dir@rama | tokens (%usado) | cache TTL 42m · 🫀 2h15m (50m) | 5h[↑] @reinicio | 7d[↑] @reinicio | scoped | extra | versión
+[sesión |] /ruta/completa/del/directorio scratchpad
 ```
 
 - `statusline.sh`: macOS, Linux y Windows con Git Bash (requiere `jq`, `curl` y `git`). En Windows es la opción recomendada por ser más rápida; `curl` y `git` vienen con Git for Windows y `jq` se instala con `winget install jqlang.jq`.

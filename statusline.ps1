@@ -1,6 +1,6 @@
 # Based on: https://github.com/daniel3303/ClaudeCodeStatusLine
-# Line 1: [account label |] Model (effort) | dir@branch scratchpad | tokens (%used) | cache TTL countdown [· 🫀 autostop (interval)] | 5h[↑] @reset | 7d[↑] @reset | scoped | extra | CLI version
-# Line 2: [session name |] full current working directory
+# Line 1: [account label |] Model (effort) | dir@branch | tokens (%used) | cache TTL countdown [· 🫀 autostop (interval)] | 5h[↑] @reset | 7d[↑] @reset | scoped | extra | CLI version
+# Line 2: [session name |] full current working directory [scratchpad]
 param(
     [string]$Refresh,
     [long]$Now,
@@ -469,9 +469,7 @@ $accountLabel = $accountLabel -replace '[\x00-\x1f\x7f]', ''
 $line = if ($accountLabel) { $pink + $accountLabel + $reset + $sep } else { '' }
 $line += $blue + $model + $reset + ' ' + $dim + '(' + $reset + $effortColor + $effortLabel + $reset + $dim + ')' + $reset
 if ($cwd) {
-    $line += $sep + (Format-Hyperlink $cwd ($cyan + [IO.Path]::GetFileName($cwd.TrimEnd('\', '/')) + $reset)) + (Format-GitSegment $cwd)
-    $scratchpadDir = Resolve-ScratchpadDir ([string](Get-Value $status.workspace.project_dir $cwd)) ([string](Get-Value $status.session_id ''))
-    if ($scratchpadDir) { $line += ' ' + (Format-Hyperlink $scratchpadDir ($dim + $cyan + 'scratchpad' + $reset)) }
+    $line += $sep + $cyan + [IO.Path]::GetFileName($cwd.TrimEnd('\', '/')) + $reset + (Format-GitSegment $cwd)
 }
 $line += $sep + $orange + (Format-Tokens $current) + '/' + (Format-Tokens $size) + $reset + ' ' + $dim + '(' + $reset + $green + $percentUsed + '%' + $reset + $dim + ')' + $reset
 $cacheSegment = Format-CacheSegment ([string](Get-Value $status.transcript_path ''))
@@ -479,7 +477,12 @@ $line += $cacheSegment + (Format-CachebeatSegment ([string](Get-Value $status.se
 if ($cliVersion) { $line += $sep + $orange + 'v' + $cliVersion + $reset }
 $secondLine = @()
 if ($sessionName) { $secondLine += $white + $sessionName + $reset }
-if ($cwd) { $secondLine += $dim + $cwd + $reset }
+if ($cwd) {
+    $cwdText = Format-Hyperlink $cwd ($white + $cwd + $reset)
+    $scratchpadDir = Resolve-ScratchpadDir ([string](Get-Value $status.workspace.project_dir $cwd)) ([string](Get-Value $status.session_id ''))
+    if ($scratchpadDir) { $cwdText += ' ' + (Format-Hyperlink $scratchpadDir ($cyan + 'scratchpad' + $reset)) }
+    $secondLine += $cwdText
+}
 if ($secondLine) { $line += "`n" + ($secondLine -join $sep) }
 
 if ($checkUpdates -and $cliVersion) {

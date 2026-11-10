@@ -1,7 +1,7 @@
 #!/bin/bash
 # Based on: https://github.com/daniel3303/ClaudeCodeStatusLine
-# Line 1: [account label |] Model (effort) | dir@branch scratchpad | tokens (%used) | cache TTL countdown [· 🫀 autostop (interval)] | 5h[↑] @reset | 7d[↑] @reset | scoped | extra | CLI version
-# Line 2: [session name |] full current working directory
+# Line 1: [account label |] Model (effort) | dir@branch | tokens (%used) | cache TTL countdown [· 🫀 autostop (interval)] | 5h[↑] @reset | 7d[↑] @reset | scoped | extra | CLI version
+# Line 2: [session name |] full current working directory [scratchpad]
 
 set -f
 
@@ -384,14 +384,8 @@ fi
 cwd=${cwd//\\//}
 git_segment=""
 if [ -n "$cwd" ]; then
-    hyperlink "$cwd" "${cyan}${cwd##*/}${reset}"
-    git_segment="${sep}${link}"
+    git_segment="${sep}${cyan}${cwd##*/}${reset}"
     render_git_segment
-    resolve_scratchpad_dir
-    if [ -n "$scratchpad_dir" ]; then
-        hyperlink "$scratchpad_dir" "${dim}${cyan}scratchpad${reset}"
-        git_segment+=" ${link}"
-    fi
 fi
 
 cache_segment=""
@@ -404,7 +398,15 @@ output="${head}${git_segment}${tokens_segment}${cache_segment}${limits_segment}"
 second_line=""
 [ -n "$session_segment" ] && second_line="$session_segment"
 [ -n "$session_segment" ] && [ -n "$cwd" ] && second_line+="$sep"
-[ -n "$cwd" ] && second_line+="${dim}${cwd}${reset}"
+if [ -n "$cwd" ]; then
+    hyperlink "$cwd" "${white}${cwd}${reset}"
+    second_line+="$link"
+    resolve_scratchpad_dir
+    if [ -n "$scratchpad_dir" ]; then
+        hyperlink "$scratchpad_dir" "${cyan}scratchpad${reset}"
+        second_line+=" ${link}"
+    fi
+fi
 [ -n "$second_line" ] && output+=$'\n'"$second_line"
 [ -n "$update_notice" ] && output+=$'\n'"$update_notice"
 printf '%s' "$output"
