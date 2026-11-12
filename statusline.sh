@@ -278,12 +278,12 @@ def white: esc("38;2;220;220;220");
 def pink: esc("38;2;255;121;198");
 def sep: " \(dim)|\(reset) ";
 def usage_color($pct): if $pct >= 90 then red elif $pct >= 70 then orange elif $pct >= 50 then yellow else green end;
-def segment($label; $pct): "\(sep)\(white)\($label)\(reset) \(usage_color($pct))\($pct)%\(reset)";
+def segment($lbl; $pct): "\(sep)\(white)\($lbl)\(reset) \(usage_color($pct))\($pct)%\(reset)";
 def pace_arrow($pct; $resets; $window):
     if ($resets // 0) > 0 and (($pct // 0) > ((($window - ($resets - now)) / $window * 100) | if . < 0 then 0 elif . > 100 then 100 else . end))
     then "\(red)↑\(reset)" else "" end;
-def limit_segment($label; $pct; $resets; $window): segment($label; $pct // 0 | round) + pace_arrow($pct; $resets; $window);
-def placeholder($label): "\(sep)\(white)\($label)\(reset) \(dim)-\(reset)";
+def limit_segment($lbl; $pct; $resets; $window): segment($lbl; $pct // 0 | round) + pace_arrow($pct; $resets; $window);
+def placeholder($lbl): "\(sep)\(white)\($lbl)\(reset) \(dim)-\(reset)";
 def tokens:
     if . >= 1000000 then ((. / 100000 | round) / 10) as $v | "\(if $v == ($v | floor) then $v | floor else $v end)m"
     elif . >= 1000 then "\(. / 1000 | round)k"
